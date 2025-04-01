@@ -48,16 +48,17 @@ pub fn render_case(
         ))
         .with_children(|parent| {
             for (mesh, tr, mal, c) in mesh_to_render {
-                parent.spawn((
-                    c,
-                    Mesh3d(meshes.add(mesh)),
-                    tr.clone(),
-                    MeshMaterial3d(mal.clone()),
-                ))
-                    .observe(deal_on_drop)
-                ;
+                parent
+                    .spawn((
+                        c,
+                        Mesh3d(meshes.add(mesh)),
+                        tr.clone(),
+                        MeshMaterial3d(mal.clone()),
+                    ))
+                    .observe(deal_on_drop);
             }
-        });
+        })
+        .observe(deal_on_drop);
 }
 
 pub fn case_mesh(

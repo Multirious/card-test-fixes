@@ -1,4 +1,5 @@
 use crate::cases::CaseZone;
+use bevy::ecs::observer::TriggerTargets;
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
@@ -25,12 +26,7 @@ where
         let mesh_list = gen_card_mesh_list(meshes, width, height, radius, thick);
 
         commands
-            .spawn((
-                Card::default(),
-                Visibility::Inherited,
-                transform,
-                PickingBehavior::IGNORE,
-            ))
+            .spawn((Card::default(), Visibility::Inherited, transform))
             .with_children(|parent| {
                 // 加载黑色边框
                 for (mesh_handle, trans) in mesh_list.0 {
@@ -69,16 +65,36 @@ where
                 }
             })
             .observe(move_on_drag::<C>())
-            .observe(deal_on_drop);
+            .observe(drag_start)
+            .observe(drag_end);
     }
 }
 
 // 处理拖拽到的代码
-pub fn deal_on_drop(drag_drop: Trigger<Pointer<DragDrop>>, mut query: Query<&mut CaseZone>) {
+pub fn deal_on_drop(
+    drag_drop: Trigger<Pointer<DragDrop>>,
+    mut query: Query<&mut CaseZone>,
+    mut card_query: Query<&mut Card>,
+) {
     // 场地的值？ TODO 这处理
-    info!("{:?}", drag_drop);
-    let x = query.get_mut(drag_drop.dropped).unwrap();
+    // info!("{:?}", drag_drop);
+
+    let x = query.get_mut(drag_drop.target).unwrap();
     info!("{:?}", x);
+    let card = card_query.get_mut(drag_drop.dropped).unwrap();
+    //todo 处理内部的场地和卡片的关系
+}
+
+pub fn drag_start(drag_start: Trigger<Pointer<DragStart>>, mut commands: Commands) {
+    commands
+        .entity(drag_start.target)
+        .insert(PickingBehavior::IGNORE);
+}
+
+pub fn drag_end(drag_start: Trigger<Pointer<DragEnd>>, mut commands: Commands) {
+    commands
+        .entity(drag_start.target)
+        .remove::<PickingBehavior>();
 }
 
 // 在这里个方法里 还可以做其他的事情 比如通知全局现在要选择
