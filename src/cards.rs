@@ -8,6 +8,8 @@ pub struct Card {
     // todo
 }
 
+#[derive(Component, Debug)]
+pub struct CardInfo {}
 // 生成闭包的模板
 
 pub fn gen_put_card<C>(
@@ -39,6 +41,9 @@ where
                 // 加载内容
                 for (mesh_handle, trans) in mesh_list.1 {
                     parent.spawn((
+                        CardInfo {
+                            // todo 这里是卡片的信息内容
+                        },
                         Mesh3d(mesh_handle.clone()),
                         trans.clone(),
                         MeshMaterial3d(materials.add(StandardMaterial {
@@ -74,21 +79,29 @@ where
 pub fn deal_on_drop(
     drag_drop: Trigger<Pointer<DragDrop>>,
     mut query: Query<&mut CaseZone>,
-    mut card_query: Query<&mut Card>,
+    mut card_query: Query<&mut CardInfo>,
+    mut commands: Commands,
 ) {
     // 场地的值？ TODO 这处理
-    // info!("{:?}", drag_drop);
+    info!("{:?}", drag_drop);
 
     let x = query.get_mut(drag_drop.target).unwrap();
     info!("{:?}", x);
-    let card = card_query.get_mut(drag_drop.dropped).unwrap();
+    let y = card_query.get(drag_drop.dropped).unwrap();
     //todo 处理内部的场地和卡片的关系
+    info!("{:?}", y);
 }
 
-pub fn drag_start(drag_start: Trigger<Pointer<DragStart>>, mut commands: Commands) {
-    commands
-        .entity(drag_start.target)
-        .insert(PickingBehavior::IGNORE);
+pub fn drag_start(
+    drag_start: Trigger<Pointer<DragStart>>,
+    mut commands: Commands,
+    query: Query<(), With<CardInfo>>,
+) {
+    if query.get(drag_start.target).is_ok() {
+        commands
+            .entity(drag_start.target)
+            .insert(PickingBehavior::IGNORE);
+    }
 }
 
 pub fn drag_end(drag_start: Trigger<Pointer<DragEnd>>, mut commands: Commands) {

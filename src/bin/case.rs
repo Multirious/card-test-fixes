@@ -63,6 +63,8 @@ fn setup(
         stone1: asset_server.load("stone_1.png"),
         stone2: asset_server.load("stone_2.png"),
         safe: asset_server.load("safe.png"),
+        lx: asset_server.load("lx.png"),
+        jq: asset_server.load("jq.png"),
     };
 
     render_case(&mut commands, &mut meshes, &mut materials, case_images);
@@ -77,7 +79,7 @@ fn setup(
     commands.spawn((CasePlane, case_plane));
 
     // 卡片放置器 放置在查看面上
-    let mut card_fn = gen_put_card::<CasePlane>(
+    let mut card_fn = gen_put_card::<CardPlane>(
         &mut commands,
         &mut materials,
         &mut meshes,
@@ -89,6 +91,6 @@ fn setup(
     let yellow = asset_server.load("NAAI-A-001.png");
     card_fn(
         yellow.clone(),
-        Transform::from_xyz(0., 0., case_plane.translation.z),
+        Transform::from_xyz(0., 0., card_plane.translation.z),
     );
 }

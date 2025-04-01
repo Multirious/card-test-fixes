@@ -1,5 +1,6 @@
 use crate::cards::deal_on_drop;
 use bevy::prelude::*;
+use std::f32::consts::PI;
 
 // 场地图片配置
 #[derive(Resource)]
@@ -7,6 +8,8 @@ pub struct CaseImages {
     pub stone1: Handle<Image>,
     pub stone2: Handle<Image>,
     pub safe: Handle<Image>,
+    pub lx: Handle<Image>,
+    pub jq: Handle<Image>,
 }
 
 #[derive(Component)]
@@ -57,8 +60,7 @@ pub fn render_case(
                     ))
                     .observe(deal_on_drop);
             }
-        })
-        .observe(deal_on_drop);
+        });
 }
 
 pub fn case_mesh(
@@ -207,8 +209,13 @@ pub fn case_mesh(
         // 上方理性区
         (
             Rectangle::from_size(Vec2::new(a, a * 2.0)),
-            Transform::from_xyz(-5.0 * half_a, half_mid + a, 0.0),
-            materials.add(Color::WHITE),
+            Transform::from_xyz(-5.0 * half_a, half_mid + a, 0.0)
+                .with_rotation(Quat::from_axis_angle(Vec3::Z, PI)),
+            materials.add(StandardMaterial {
+                base_color_texture: Some(case_images.lx.clone()),
+                unlit: true,
+                ..default()
+            }),
             CaseZone {
                 zone_type: CaseZoneType::Lx,
                 transform: Transform::from_xyz(-5.0 * half_a, half_mid + a, 0.0),
@@ -218,8 +225,13 @@ pub fn case_mesh(
         // 上方激情区
         (
             Rectangle::from_size(Vec2::new(a, a * 2.0)),
-            Transform::from_xyz(5.0 * half_a, half_mid + a, 0.0),
-            materials.add(Color::WHITE),
+            Transform::from_xyz(5.0 * half_a, half_mid + a, 0.0)
+                .with_rotation(Quat::from_axis_angle(Vec3::Z, PI)),
+            materials.add(StandardMaterial {
+                base_color_texture: Some(case_images.jq.clone()),
+                unlit: true,
+                ..default()
+            }),
             CaseZone {
                 zone_type: CaseZoneType::JQ,
                 transform: Transform::from_xyz(5.0 * half_a, half_mid + a, 0.0),
@@ -346,7 +358,11 @@ pub fn case_mesh(
         (
             Rectangle::from_size(Vec2::new(a, a * 2.0)),
             Transform::from_xyz(5.0 * half_a, -(half_mid + a), 0.0),
-            materials.add(Color::WHITE),
+            materials.add(StandardMaterial {
+                base_color_texture: Some(case_images.lx.clone()),
+                unlit: true,
+                ..default()
+            }),
             CaseZone {
                 zone_type: CaseZoneType::Lx,
                 transform: Transform::from_xyz(5.0 * half_a, -(half_mid + a), 0.0),
@@ -357,7 +373,11 @@ pub fn case_mesh(
         (
             Rectangle::from_size(Vec2::new(a, a * 2.0)),
             Transform::from_xyz(-5.0 * half_a, -(half_mid + a), 0.0),
-            materials.add(Color::WHITE),
+            materials.add(StandardMaterial {
+                base_color_texture: Some(case_images.jq.clone()),
+                unlit: true,
+                ..default()
+            }),
             CaseZone {
                 zone_type: CaseZoneType::JQ,
                 transform: Transform::from_xyz(-5.0 * half_a, -(half_mid + a), 0.0),
