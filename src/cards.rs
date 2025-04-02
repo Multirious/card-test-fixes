@@ -1,11 +1,17 @@
+use crate::cards::EventWithData::BackTo;
 use crate::cases::CaseZone;
 use bevy::ecs::observer::TriggerTargets;
 use bevy::prelude::*;
+use bevy_tween::combinator::{TransformTargetStateExt, event, parallel};
+use bevy_tween::interpolation::EaseKind;
+use bevy_tween::prelude::{AnimationBuilderExt, IntoTarget};
+use bevy_tween::tween::AnimationTarget;
 use std::f32::consts::PI;
+use std::time::Duration;
 
 #[derive(Default, Component)]
 pub struct Card {
-    // todo
+    pub trans: Transform,
 }
 
 #[derive(Component, Debug)]
@@ -20,7 +26,7 @@ pub fn gen_put_card<C>(
     height: f32,
     radius: f32,
     thick: f32,
-) -> impl FnMut(Handle<Image>, Transform)
+) -> impl FnMut(Handle<Image>, Transform) -> Entity
 where
     C: Component,
 {
@@ -28,7 +34,14 @@ where
         let mesh_list = gen_card_mesh_list(meshes, width, height, radius, thick);
 
         commands
-            .spawn((Card::default(), Visibility::Inherited, transform))
+            .spawn((
+                Card {
+                    trans: transform.clone(),
+                },
+                Visibility::Inherited,
+                transform,
+                AnimationTarget,
+            ))
             .with_children(|parent| {
                 // 加载黑色边框
                 for (mesh_handle, trans) in mesh_list.0 {
@@ -71,7 +84,8 @@ where
             })
             .observe(move_on_drag::<C>())
             .observe(drag_start)
-            .observe(drag_end);
+            .observe(drag_end)
+            .id()
     }
 }
 
@@ -104,7 +118,34 @@ pub fn drag_start(
     }
 }
 
-pub fn drag_end(drag_start: Trigger<Pointer<DragEnd>>, mut commands: Commands) {
+pub enum EventWithData {
+    BackTo((Vec3, Vec3)),
+}
+
+pub fn drag_end(
+    drag_start: Trigger<Pointer<DragEnd>>,
+    mut commands: Commands,
+    query: Query<&Parent>,
+    query_transform: Query<(&Transform, &Card)>,
+) {
+    info!("{:?}", drag_start.target);
+    // 发送回到原来位置的命令
+    if let Ok(parent) = query.get(drag_start.target) {
+        if let Ok((tr, card)) = query_transform.get(parent.get()) {
+            // commands
+            //     .entity(parent.get())
+            //     .animation()
+            //     .insert(parallel(event("back")));
+            let target = AnimationTarget.into_target();
+            let mut start = target.transform_state(tr.clone());
+
+            commands.entity(parent.get()).animation().insert_tween_here(
+                Duration::from_secs_f32(1.1),
+                EaseKind::ExponentialOut,
+                start.translation_to(card.trans.translation),
+            );
+        }
+    }
     commands
         .entity(drag_start.target)
         .remove::<PickingBehavior>();

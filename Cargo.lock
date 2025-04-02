@@ -1196,15 +1196,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_sprite3d"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11512eeb84d4106da2bc9bcd2434a2ab9a32da1ee1794c27a7aa55f1df761268"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_state"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1287,6 +1278,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_time_runner"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beaff0ef5e1c246f093ebbcaef81c8d386902e22ce374d1e51757f05cb3cb834"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_hierarchy",
+ "bevy_reflect",
+ "bevy_time",
+ "rustc_version",
+]
+
+[[package]]
 name = "bevy_transform"
 version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1301,12 +1306,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_tweening"
-version = "0.12.0"
+name = "bevy_tween"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b95b4abfbb08a8b16c1feffffb73cb4c01b693810ab4982669e019b52fafcca0"
+checksum = "daddedc68f42ddc3fc18c21df736fa5f69188a29bf07d548f627876cdce736da"
 dependencies = [
  "bevy",
+ "bevy_time_runner",
+ "rustc_version",
 ]
 
 [[package]]
@@ -1619,8 +1626,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
- "bevy_sprite3d",
- "bevy_tweening",
+ "bevy_tween",
 ]
 
 [[package]]
@@ -4059,6 +4065,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "rustc_version"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+dependencies = [
+ "semver",
+]
+
+[[package]]
 name = "rustix"
 version = "0.38.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4148,6 +4163,12 @@ name = "self_cell"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2fdfc24bc566f839a2da4c4295b82db7d25a24253867d5c64355abb5799bdbe"
+
+[[package]]
+name = "semver"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
 
 [[package]]
 name = "send_wrapper"
