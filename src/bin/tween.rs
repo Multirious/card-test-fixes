@@ -13,6 +13,7 @@ use card_test::camera_controller::{CameraController, CameraControllerPlugin};
 use card_test::cards::{Card, gen_put_card};
 use card_test::cases::{CaseImages, CasePlane, render_case};
 use std::f32::consts::PI;
+use card_test::CommonPlugin;
 
 fn main() {
     App::new()
@@ -22,6 +23,7 @@ fn main() {
             // CameraControllerPlugin,
             // 动画相关
             DefaultTweenPlugins,
+            CommonPlugin,
         ))
         .add_plugins(WorldInspectorPlugin::new())
         .add_systems(Startup, setup)

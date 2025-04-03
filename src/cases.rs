@@ -29,9 +29,9 @@ pub enum CaseZoneType {
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct CaseZone {
-    zone_type: CaseZoneType,
-    transform: Transform,
-    num: u32,
+    pub zone_type: CaseZoneType,
+    pub transform: Transform,
+    pub num: u32,
 }
 
 pub fn render_case(

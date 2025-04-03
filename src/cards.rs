@@ -1,4 +1,5 @@
 use crate::cases::CaseZone;
+use crate::spawn_ui_popup;
 use bevy::ecs::observer::TriggerTargets;
 use bevy::prelude::*;
 use bevy_tween::combinator::{TransformTargetStateExt, event, parallel};
@@ -8,7 +9,7 @@ use bevy_tween::tween::AnimationTarget;
 use std::f32::consts::PI;
 use std::time::Duration;
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Clone)]
 pub struct Card {
     pub trans: Transform,
 }
@@ -16,6 +17,9 @@ pub struct Card {
 #[derive(Component, Debug)]
 pub struct CardInfo {}
 // 生成闭包的模板
+
+#[derive(Component, Debug)]
+pub struct Setted;
 
 pub fn gen_put_card<C>(
     commands: &mut Commands,
@@ -94,17 +98,52 @@ where
 pub fn deal_on_drop(
     drag_drop: Trigger<Pointer<DragDrop>>,
     mut query: Query<&mut CaseZone>,
-    mut card_query: Query<&mut CardInfo>,
+    mut card_info_query: Query<&mut CardInfo>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut card_q: Query<&mut Card>,
+    mut p_q: Query<&Parent, With<CardInfo>>,
 ) {
     // 场地的值？ TODO 这处理
     info!("{:?}", drag_drop);
 
-    let x = query.get_mut(drag_drop.target).unwrap();
-    info!("{:?}", x);
-    let y = card_query.get(drag_drop.dropped).unwrap();
+    let case_zone = query.get_mut(drag_drop.target).unwrap();
+    let end = case_zone.clone().transform.translation;
+    info!("{:?}", case_zone);
+    let y = card_info_query.get(drag_drop.dropped).unwrap();
     //todo 处理内部的场地和卡片的关系
     info!("{:?}", y);
+    if let Ok(parent) = p_q.get(drag_drop.dropped) {
+        if let Ok(mut card) = card_q.get_mut(parent.get()) {
+            let p_clone = parent.get().clone();
+            // 设置卡片被放置了
+            commands.entity(parent.get()).insert(Setted);
+            let mut card_clone = card.clone();
+            spawn_ui_popup(
+                &mut commands,
+                &asset_server,
+                "是否登场?",
+                move |cmd| {
+                    let target = AnimationTarget.into_target();
+                    let mut start = target.transform_state(card_clone.clone().trans);
+                    // todo 这里应该一系列动画
+                    card_clone.trans.translation = end.clone();
+                    cmd.entity(p_clone)
+                        .animation()
+                        .insert_tween_here(
+                            Duration::from_secs_f32(2.0),
+                            EaseKind::ExponentialOut,
+                            start.translation_to(end),
+                        )
+                        .insert(card_clone.clone());
+                    info!("确认");
+                },
+                move |cmd| {
+                    info!("取消");
+                },
+            );
+        }
+    }
 }
 
 #[derive(Component, Debug)]
@@ -114,7 +153,7 @@ pub fn over_card(
     out: Trigger<Pointer<Over>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card), Without<Dragging>>,
+    query_transform: Query<(&Transform, &Card), (Without<Dragging>,Without<Setted>)>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
@@ -135,7 +174,7 @@ pub fn out_card(
     out: Trigger<Pointer<Out>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card), Without<Dragging>>,
+    query_transform: Query<(&Transform, &Card), (Without<Dragging>,Without<Setted>)>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
