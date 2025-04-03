@@ -10,7 +10,6 @@ use bevy_tween::DefaultTweenPlugins;
 use bevy_tween::prelude::*;
 use bevy_tween::tween::AnimationTarget;
 use card_test::camera_controller::{CameraController, CameraControllerPlugin};
-use card_test::cards::EventWithData::BackTo;
 use card_test::cards::{Card, gen_put_card};
 use card_test::cases::{CaseImages, CasePlane, render_case};
 use std::f32::consts::PI;

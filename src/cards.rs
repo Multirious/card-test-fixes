@@ -1,4 +1,3 @@
-use crate::cards::EventWithData::BackTo;
 use crate::cases::CaseZone;
 use bevy::ecs::observer::TriggerTargets;
 use bevy::prelude::*;
@@ -108,27 +107,14 @@ pub fn deal_on_drop(
     info!("{:?}", y);
 }
 
-pub fn drag_start(
-    drag_start: Trigger<Pointer<DragStart>>,
-    mut commands: Commands,
-    query: Query<(), With<CardInfo>>,
-) {
-    if query.get(drag_start.target).is_ok() {
-        commands
-            .entity(drag_start.target)
-            .insert(PickingBehavior::IGNORE);
-    }
-}
-
-pub enum EventWithData {
-    BackTo((Vec3, Vec3)),
-}
+#[derive(Component, Debug)]
+pub struct Dragging;
 
 pub fn over_card(
     out: Trigger<Pointer<Over>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card)>,
+    query_transform: Query<(&Transform, &Card), Without<Dragging>>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
@@ -149,7 +135,7 @@ pub fn out_card(
     out: Trigger<Pointer<Out>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card)>,
+    query_transform: Query<(&Transform, &Card), Without<Dragging>>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
@@ -162,6 +148,23 @@ pub fn out_card(
                 start.translation_to(card.trans.translation),
             );
         }
+    }
+}
+
+pub fn drag_start(
+    drag_start: Trigger<Pointer<DragStart>>,
+    mut commands: Commands,
+    query: Query<(), With<CardInfo>>,
+    query_parent: Query<&Parent>,
+) {
+    if query.get(drag_start.target).is_ok() {
+        commands
+            .entity(drag_start.target)
+            .insert(PickingBehavior::IGNORE);
+    }
+    // 添加拖拽中的组件
+    if let Ok(parent) = query_parent.get(drag_start.target) {
+        commands.entity(parent.get()).insert(Dragging);
     }
 }
 
@@ -187,6 +190,8 @@ pub fn drag_end(
                 EaseKind::ExponentialOut,
                 start.translation_to(card.trans.translation),
             );
+            // 删除拖拽中的组件
+            commands.entity(parent.get()).remove::<Dragging>();
         }
     }
     commands
