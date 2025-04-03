@@ -88,7 +88,7 @@ fn setup(
     let yellow = asset_server.load("NAAI-A-001.png");
     card_fn(
         yellow.clone(),
-        Transform::from_xyz(0., 0., card_plane.translation.z),
+        Transform::from_xyz(0., -4., card_plane.translation.z),
     );
 }
 

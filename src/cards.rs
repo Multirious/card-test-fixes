@@ -85,6 +85,8 @@ where
             .observe(move_on_drag::<C>())
             .observe(drag_start)
             .observe(drag_end)
+            .observe(over_card)
+            .observe(out_card)
             .id()
     }
 }
@@ -120,6 +122,47 @@ pub fn drag_start(
 
 pub enum EventWithData {
     BackTo((Vec3, Vec3)),
+}
+
+pub fn over_card(
+    out: Trigger<Pointer<Over>>,
+    mut commands: Commands,
+    query: Query<&Parent>,
+    query_transform: Query<(&Transform, &Card)>,
+) {
+    if let Ok(parent) = query.get(out.target) {
+        if let Ok((tr, card)) = query_transform.get(parent.get()) {
+            let target = AnimationTarget.into_target();
+            let mut start = target.transform_state(tr.clone());
+            let mut end = tr.clone().translation;
+            end.y = -2.0;
+            commands.entity(parent.get()).animation().insert_tween_here(
+                Duration::from_secs_f32(1.1),
+                EaseKind::ExponentialOut,
+                start.translation_to(end),
+            );
+        }
+    }
+}
+
+pub fn out_card(
+    out: Trigger<Pointer<Out>>,
+    mut commands: Commands,
+    query: Query<&Parent>,
+    query_transform: Query<(&Transform, &Card)>,
+) {
+    if let Ok(parent) = query.get(out.target) {
+        if let Ok((tr, card)) = query_transform.get(parent.get()) {
+            let target = AnimationTarget.into_target();
+            let mut start = target.transform_state(tr.clone());
+
+            commands.entity(parent.get()).animation().insert_tween_here(
+                Duration::from_secs_f32(1.1),
+                EaseKind::ExponentialOut,
+                start.translation_to(card.trans.translation),
+            );
+        }
+    }
 }
 
 pub fn drag_end(
