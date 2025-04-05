@@ -8,12 +8,11 @@ use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_tween::DefaultTweenPlugins;
 use bevy_tween::prelude::*;
-use bevy_tween::tween::AnimationTarget;
 use card_test::camera_controller::{CameraController, CameraControllerPlugin};
-use card_test::cards::{Card, gen_put_card};
+use card_test::cards::{Card, Dragging, Setted, gen_put_card};
 use card_test::cases::{CaseImages, CasePlane, render_case};
+use card_test::{CommonPlugin, MainCamera};
 use std::f32::consts::PI;
-use card_test::CommonPlugin;
 
 fn main() {
     App::new()
@@ -27,7 +26,7 @@ fn main() {
         ))
         .add_plugins(WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
-        .add_systems(Update, deal_tween_event)
+        .add_systems(Update, change_trans)
         .run();
 }
 
@@ -43,6 +42,7 @@ fn setup(
     // config_store.config_mut::<AabbGizmoConfigGroup>().1.draw_all ^= true;
     // 自由相机来测试Ω
     commands.spawn((
+        MainCamera,
         Camera3d::default(),
         Transform::from_xyz(0., 0., 25.).looking_at(Vec3::ZERO, Vec3::Y),
         CameraController::default(),
@@ -97,35 +97,23 @@ fn setup(
 pub fn change_trans(
     mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    card: Query<(Entity, &Transform), With<Card>>,
+    mut card: Query<(Entity, &mut Transform, &mut Card), With<Card>>,
 ) {
-    let end = Vec3::new(7., 7., 0.1);
     if keyboard_input.just_pressed(KeyCode::KeyA) {
-        card.iter().for_each(|(entity, transform)| {
-            let card = AnimationTarget.into_target();
-            let mut start = card.transform_state(transform.clone());
-            commands.entity(entity).animation().insert_tween_here(
-                Duration::from_secs_f32(2.),
-                EaseKind::ExponentialOut,
-                start.translation_to(end),
-            );
-        })
+        card.iter_mut()
+            .for_each(|(entity, mut transform, mut card)| {
+                let at = Transform::from_xyz(0., -4., 18.0);
+                info!("{:?}", at);
+                info!("{:?}", card);
+                commands
+                    .entity(entity)
+                    .remove::<Setted>()
+                    .remove::<Dragging>()
+                    .remove::<PickingBehavior>()
+                    .insert(Card { trans: at.clone() });
+                transform.translation.x = at.translation.x;
+                transform.translation.y = at.translation.y;
+                transform.translation.z = at.translation.z;
+            })
     }
-}
-
-pub fn deal_tween_event(mut commands: Commands, mut event: EventReader<TweenEvent<&'static str>>) {
-    event.read().for_each(|event| match event.data {
-        "back" => {
-            info!("{:?}", event.entity);
-            let target = AnimationTarget.into_target();
-            let mut start = target.transform_state(Transform::from_translation(Vec3::ZERO));
-
-            commands.entity(event.entity).animation().insert_tween_here(
-                Duration::from_secs_f32(2.),
-                EaseKind::ExponentialOut,
-                start.translation_to(Vec3::ZERO),
-            );
-        }
-        _ => {}
-    });
 }

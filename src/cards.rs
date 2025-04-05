@@ -2,14 +2,17 @@ use crate::cases::CaseZone;
 use crate::spawn_ui_popup;
 use bevy::ecs::observer::TriggerTargets;
 use bevy::prelude::*;
-use bevy_tween::combinator::{TransformTargetStateExt, event, parallel};
+use bevy_inspector_egui::InspectorOptions;
+use bevy_tween::combinator::{
+    TransformTargetStateExt, event, event_for, parallel, sequence, tween,
+};
 use bevy_tween::interpolation::EaseKind;
 use bevy_tween::prelude::{AnimationBuilderExt, IntoTarget};
 use bevy_tween::tween::AnimationTarget;
 use std::f32::consts::PI;
 use std::time::Duration;
 
-#[derive(Default, Component, Clone)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct Card {
     pub trans: Transform,
 }
@@ -101,41 +104,77 @@ pub fn deal_on_drop(
     mut card_info_query: Query<&mut CardInfo>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut card_q: Query<&mut Card>,
+    mut card_q: Query<&mut Card, Without<Setted>>,
     mut p_q: Query<&Parent, With<CardInfo>>,
 ) {
     // 场地的值？ TODO 这处理
-    info!("{:?}", drag_drop);
+    // info!("{:?}", drag_drop);
 
     let case_zone = query.get_mut(drag_drop.target).unwrap();
     let end = case_zone.clone().transform.translation;
-    info!("{:?}", case_zone);
-    let y = card_info_query.get(drag_drop.dropped).unwrap();
+    // info!("{:?}", case_zone);
+    if let Ok(y) = card_info_query.get(drag_drop.dropped) {
+        // todo
+    }
     //todo 处理内部的场地和卡片的关系
-    info!("{:?}", y);
+    // info!("{:?}", y);
     if let Ok(parent) = p_q.get(drag_drop.dropped) {
         if let Ok(mut card) = card_q.get_mut(parent.get()) {
             let p_clone = parent.get().clone();
             // 设置卡片被放置了
-            commands.entity(parent.get()).insert(Setted);
             let mut card_clone = card.clone();
+            let card_end = Card {
+                trans: Transform::from_translation(end.clone()),
+            };
             spawn_ui_popup(
                 &mut commands,
                 &asset_server,
                 "是否登场?",
-                move |cmd| {
+                move |cmd, ch_q| {
                     let target = AnimationTarget.into_target();
                     let mut start = target.transform_state(card_clone.clone().trans);
-                    // todo 这里应该一系列动画
-                    card_clone.trans.translation = end.clone();
+                    // // todo 这里应该一系列动画
+                    // card_clone.trans.translation = end.clone();
+                    let mut mid = Vec3::ZERO;
+                    mid.z = card_clone.trans.translation.z;
+
+                    let mut mid2 = Vec3::ZERO;
+                    mid2.z = card_clone.trans.translation.z + 3.0;
+                    info!("{:?}", card_clone.clone().trans.translation);
+                    info!("{:?}", mid);
+                    info!("{:?}", end);
+                    let mut mid_state = target.transform_state(Transform::from_translation(mid));
+                    let mut mid_state2 = target.transform_state(Transform::from_translation(mid));
+                    info!("add tween");
                     cmd.entity(p_clone)
                         .animation()
-                        .insert_tween_here(
-                            Duration::from_secs_f32(2.0),
-                            EaseKind::ExponentialOut,
-                            start.translation_to(end),
-                        )
-                        .insert(card_clone.clone());
+                        .insert(sequence((
+                            tween(
+                                Duration::from_secs_f32(1.0),
+                                EaseKind::ExponentialOut,
+                                start.translation_to(mid),
+                            ),
+                            tween(
+                                Duration::from_secs_f32(1.0),
+                                EaseKind::ExponentialOut,
+                                mid_state.translation_to(mid2),
+                            ),
+                            tween(
+                                Duration::from_secs_f32(0.6),
+                                EaseKind::ExponentialOut,
+                                mid_state2.translation_to(end),
+                            ),
+                            parallel((event("boom"), event("shark"))),
+                        )))
+                        .insert(card_end.clone())
+                        .insert(Setted);
+
+                    // 恢复自由身体
+                    if let Ok(children) = ch_q.get(p_clone) {
+                        for child in children.iter() {
+                            cmd.entity(child.clone()).remove::<PickingBehavior>();
+                        }
+                    }
                     info!("确认");
                 },
                 move |cmd| {
@@ -153,7 +192,7 @@ pub fn over_card(
     out: Trigger<Pointer<Over>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card), (Without<Dragging>,Without<Setted>)>,
+    query_transform: Query<(&Transform, &Card), (Without<Dragging>, Without<Setted>)>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
@@ -161,6 +200,9 @@ pub fn over_card(
             let mut start = target.transform_state(tr.clone());
             let mut end = tr.clone().translation;
             end.y = -2.0;
+            info!("over");
+            info!("{:?}", tr);
+            info!("{:?}", end.clone());
             commands.entity(parent.get()).animation().insert_tween_here(
                 Duration::from_secs_f32(1.1),
                 EaseKind::ExponentialOut,
@@ -174,13 +216,15 @@ pub fn out_card(
     out: Trigger<Pointer<Out>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card), (Without<Dragging>,Without<Setted>)>,
+    query_transform: Query<(&Transform, &Card), (Without<Dragging>, Without<Setted>)>,
 ) {
     if let Ok(parent) = query.get(out.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
             let target = AnimationTarget.into_target();
             let mut start = target.transform_state(tr.clone());
-
+            info!("back");
+            info!("{:?}", tr.clone());
+            info!("{:?}", card);
             commands.entity(parent.get()).animation().insert_tween_here(
                 Duration::from_secs_f32(1.1),
                 EaseKind::ExponentialOut,
@@ -195,6 +239,7 @@ pub fn drag_start(
     mut commands: Commands,
     query: Query<(), With<CardInfo>>,
     query_parent: Query<&Parent>,
+    card_query: Query<&Card, Without<Setted>>,
 ) {
     if query.get(drag_start.target).is_ok() {
         commands
@@ -203,7 +248,9 @@ pub fn drag_start(
     }
     // 添加拖拽中的组件
     if let Ok(parent) = query_parent.get(drag_start.target) {
-        commands.entity(parent.get()).insert(Dragging);
+        if let Ok(_card) = card_query.get(parent.get()) {
+            commands.entity(parent.get()).insert(Dragging);
+        }
     }
 }
 
@@ -211,16 +258,12 @@ pub fn drag_end(
     drag_start: Trigger<Pointer<DragEnd>>,
     mut commands: Commands,
     query: Query<&Parent>,
-    query_transform: Query<(&Transform, &Card)>,
+    query_transform: Query<(&Transform, &Card), Without<Setted>>,
 ) {
-    info!("{:?}", drag_start.target);
+    info!("Drag END {:?}", drag_start.target);
     // 发送回到原来位置的命令
     if let Ok(parent) = query.get(drag_start.target) {
         if let Ok((tr, card)) = query_transform.get(parent.get()) {
-            // commands
-            //     .entity(parent.get())
-            //     .animation()
-            //     .insert(parallel(event("back")));
             let target = AnimationTarget.into_target();
             let mut start = target.transform_state(tr.clone());
 
@@ -241,7 +284,7 @@ pub fn drag_end(
 // 在这里个方法里 还可以做其他的事情 比如通知全局现在要选择
 pub fn move_on_drag<C>() -> impl Fn(
     Trigger<Pointer<Drag>>,
-    Query<&mut Transform>,
+    Query<&mut Transform, Without<Setted>>,
     Single<(&Camera, &GlobalTransform)>,
     Single<&Window>,
     Single<&GlobalTransform, With<C>>,
@@ -251,32 +294,32 @@ where
 {
     move |drag, mut transforms, camera_query, windows, ground| {
         // 这个是需要修改的值
-        let mut transform = transforms.get_mut(drag.entity()).unwrap();
+        if let Ok(mut transform) = transforms.get_mut(drag.entity()) {
+            let (camera, camera_transform) = *camera_query;
 
-        let (camera, camera_transform) = *camera_query;
+            let Some(cursor_position) = windows.cursor_position() else {
+                info!("a");
+                return;
+            };
 
-        let Some(cursor_position) = windows.cursor_position() else {
-            info!("a");
-            return;
-        };
+            // Calculate a ray pointing from the camera into the world based on the cursor's position.
+            let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
+                info!("b");
+                return;
+            };
 
-        // Calculate a ray pointing from the camera into the world based on the cursor's position.
-        let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position) else {
-            info!("b");
-            return;
-        };
-
-        // Calculate if and where the ray is hitting the ground plane.
-        let Some(distance) =
-            ray.intersect_plane(ground.translation(), InfinitePlane3d::new(ground.up()))
-        else {
-            info!("c");
-            return;
-        };
-        let point = ray.get_point(distance);
-        // info!("{:?}", point);
-        transform.translation.x = point.x;
-        transform.translation.y = point.y;
+            // Calculate if and where the ray is hitting the ground plane.
+            let Some(distance) =
+                ray.intersect_plane(ground.translation(), InfinitePlane3d::new(ground.up()))
+            else {
+                info!("c");
+                return;
+            };
+            let point = ray.get_point(distance);
+            // info!("{:?}", point);
+            transform.translation.x = point.x;
+            transform.translation.y = point.y;
+        }
     }
 }
 
